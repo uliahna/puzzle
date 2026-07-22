@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>방학 마음날씨 플래너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#FFFBF2;
+  --card:#FFFFFF;
+  --ink:#2B3A42;
+  --ink-soft:#6B7A80;
+  --line:#EFE7D8;
+  --teal:#3FBFB6;
+  --teal-dark:#1F8A82;
+  --amber:#FFB84D;
+  --amber-dark:#E08F1D;
+  --lav:#B296E0;
+  --lav-dark:#7C58C4;
+  --pink:#FF93B0;
+  --shadow: 0 10px 24px -12px rgba(43,58,66,0.22);
+  --radius:18px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;}
+h1,h2,h3,.display{font-family:'Baloo 2',sans-serif;}
+button{font-family:inherit;cursor:pointer;}
+input,textarea,select{font-family:inherit;}
+
+/* ---------- topbar ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#FFFBF2 80%, rgba(255,251,242,0));backdrop-filter:blur(2px);padding:14px 18px 6px;}
+.topbar-inner{max-width:1180px;margin:0 auto;}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-badge{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 32% 28%, #FFE6A3, var(--amber) 70%);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:var(--shadow);}
+.brand-title{font-weight:800;font-size:20px;letter-spacing:-0.3px;}
+.brand-sub{font-size:12px;color:var(--ink-soft);margin-top:-2px;}
+.weather-chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;box-shadow:var(--shadow);}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{flex:0 0 auto;border:none;background:transparent;padding:9px 14px;border-radius:12px;font-weight:700;font-size:13.5px;color:var(--ink-soft);white-space:nowrap;transition:.15s;}
+.tab-btn:hover{background:#FFF3DC;}
+.tab-btn.active{background:var(--ink);color:#fff;box-shadow:var(--shadow);}
+
+main{max-width:1180px;margin:0 auto;padding:10px 18px 80px;}
+.view{display:none;animation:fade .25s ease;}
+.view.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+.grid-2{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media (max-width:880px){.grid-2{grid-template-columns:1fr;} .grid-3{grid-template-columns:1fr;}}
+
+.section-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;margin:0 0 14px;}
+.section-title .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);}
+.hint{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+
+label.field{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{
+  width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;background:#FFFEFB;color:var(--ink);
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--teal);}
+textarea{resize:vertical;min-height:56px;}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:11px;padding:10px 16px;font-weight:800;font-size:13.5px;transition:.15s;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{background:var(--teal-dark);}
+.btn-amber{background:var(--amber);color:#5A3600;}
+.btn-amber:hover{background:var(--amber-dark);color:#fff;}
+.btn-lav{background:var(--lav);color:#fff;}
+.btn-lav:hover{background:var(--lav-dark);}
+.btn-ghost{background:#F2EFE6;color:var(--ink);}
+.btn-ghost:hover{background:#E7E2D2;}
+.btn-danger{background:#FFE3E3;color:#C4433C;}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:9px;}
+
+.info-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+@media (max-width:880px){.info-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* ---------- schedule tab ---------- */
+.quick-groups{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+.quick-group-label{font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.quick-btns{display:flex;flex-wrap:wrap;gap:7px;}
+.quick-btn{border:none;border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:700;color:#3a2c00;box-shadow:0 2px 0 rgba(0,0,0,0.08) inset;}
+.quick-btn.mind{color:#3a1e57;}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;}
+.swatch.selected{border-color:var(--ink);transform:scale(1.12);}
+.list-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;background:#FFFEFB;}
+.list-item .swatch-dot{width:14px;height:14px;border-radius:50%;flex:none;}
+.list-item .t{font-size:12px;color:var(--ink-soft);flex:none;font-weight:700;width:98px;}
+.list-item .n{flex:1;font-size:13.5px;font-weight:700;}
+.list-item button{background:none;border:none;color:#C4433C;font-size:16px;padding:2px 6px;}
+.wheel-wrap{display:flex;flex-direction:column;align-items:center;}
+.wheel-svg{width:100%;max-width:400px;height:auto;}
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;}
+.legend-chip{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;background:#F7F4EA;border-radius:999px;padding:4px 10px;}
+.legend-chip .d{width:9px;height:9px;border-radius:50%;}
+
+/* ---------- mind tab ---------- */
+.mind-card{border-left:5px solid var(--lav);padding-left:16px;margin-bottom:22px;}
+.mind-card.pink{border-color:var(--pink);}
+.mind-card.amber{border-color:var(--amber);}
+.mind-card.teal{border-color:var(--teal);}
+.mind-inline{display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:8px;}
+@media(max-width:700px){.mind-inline{grid-template-columns:1fr;}}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+@media(max-width:700px){.three-col{grid-template-columns:1fr;}}
+.entry{background:#FCFAF3;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;position:relative;}
+.entry .del{position:absolute;top:8px;right:10px;background:none;border:none;color:#C4433C;font-size:14px;}
+.entry .date{font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:5px;}
+.mood-row{display:flex;gap:8px;flex-wrap:wrap;}
+.mood-opt{border:2px solid var(--line);background:#fff;border-radius:12px;font-size:20px;padding:6px 10px;}
+.mood-opt.selected{border-color:var(--teal);background:#EAFAF8;}
+.mood-week{display:flex;gap:8px;flex-wrap:wrap;}
+.mood-day{text-align:center;font-size:11px;font-weight:700;color:var(--ink-soft);}
+.mood-day .em{font-size:22px;cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:4px 6px;display:block;margin-top:4px;background:#fff;}
+.mood-day .em.selected{background:#FFF3DC;border-color:var(--amber);}
+
+/* ---------- goals tab ---------- */
+.goal-card h3{font-size:14.5px;margin:0 0 12px;display:flex;align-items:center;gap:7px;}
+.goal-card .tag{font-size:10.5px;padding:3px 8px;border-radius:999px;font-weight:800;}
+.tag-study{background:#DCEBFF;color:#2461C4;}
+.tag-mind{background:#F2E6FF;color:#7C3FC4;}
+.tag-challenge{background:#FFE9D4;color:#C46A1E;}
+.goal-card label.field{margin-top:8px;}
+.pledge-box{margin-top:18px;background:linear-gradient(135deg,#FFF3DC,#FFE7F0);border-radius:16px;padding:18px 20px;}
+.bucket-row{display:flex;gap:8px;margin-bottom:12px;}
+.bucket-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#FFFEFB;}
+.bucket-item.done .txt{text-decoration:line-through;color:var(--ink-soft);}
+.bucket-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);}
+.bucket-item .txt{flex:1;font-size:14px;font-weight:600;}
+
+/* ---------- habit tab ---------- */
+.habit-setup{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px;}
+.habit-setup > div{min-width:150px;}
+table.habit-table{width:100%;border-collapse:collapse;margin-bottom:22px;}
+table.habit-table th, table.habit-table td{border:1px solid var(--line);padding:7px;text-align:center;font-size:12.5px;}
+table.habit-table th{background:var(--teal);color:#fff;font-weight:700;}
+table.habit-table th.rowhead-col, table.habit-table td.rowhead{background:#F7F4EA;text-align:left;font-weight:700;width:150px;}
+table.habit-table td input[type=checkbox]{width:17px;height:17px;accent-color:var(--amber);}
+table.habit-table td input[type=text]{border:none;background:transparent;text-align:center;padding:2px;font-size:12px;}
+.week-label{font-weight:800;font-size:13px;color:var(--teal-dark);margin:6px 0;}
+.habit-row-add{display:flex;gap:8px;margin-top:6px;}
+.rowdel{background:none;border:none;color:#C4433C;font-size:12px;}
+
+/* ---------- print / poster tab ---------- */
+.poster{position:relative;background:linear-gradient(180deg,#FFF7DE 0%, #FFEFD0 40%, #FFE6DA 100%);border-radius:24px;padding:34px 30px 40px;overflow:hidden;}
+.poster:before,.poster:after{content:"";position:absolute;font-size:26px;}
+.bunting{display:flex;justify-content:center;gap:4px;margin-bottom:14px;}
+.bunting span{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:16px solid var(--pink);}
+.bunting span:nth-child(2n){border-top-color:var(--teal);}
+.bunting span:nth-child(3n){border-top-color:var(--amber);}
+.poster-title{text-align:center;}
+.poster-title h1{font-size:30px;margin:4px 0;color:var(--teal-dark);letter-spacing:-0.5px;}
+.poster-meta{text-align:center;font-size:13px;font-weight:700;color:var(--ink-soft);background:#fff;display:inline-block;padding:6px 16px;border-radius:999px;margin:0 auto 18px;}
+.poster-meta-wrap{text-align:center;}
+.poster-section{background:#fffef9;border-radius:18px;padding:18px 20px;margin-bottom:16px;box-shadow:0 4px 14px -8px rgba(0,0,0,0.15);}
+.poster-section h2{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:7px;}
+.stat-pills{display:flex;flex-wrap:wrap;gap:10px;}
+.stat-pill{background:#F2E6FF;color:#7C3FC4;font-weight:800;font-size:12.5px;border-radius:999px;padding:7px 14px;}
+.export-bar{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+.footer-boat{text-align:center;font-size:26px;margin-top:6px;}
+
+@media print{
+  .topbar, .export-bar, .no-print{display:none !important;}
+  main{padding:0;max-width:none;}
+  .view{display:none !important;}
+  #view-print{display:block !important;}
+  body{background:#fff;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-badge" id="weatherIcon">☀️</div>
+        <div>
+          <div class="brand-title">방학 마음날씨 플래너</div>
+          <div class="brand-sub">공부도, 마음도 챙기는 여름방학 계획표</div>
+        </div>
+      </div>
+      <div class="weather-chip"><span id="weatherLabel">마음 날씨: 맑음</span></div>
+    </div>
+    <div class="tabs" id="tabBar">
+      <button class="tab-btn" data-tab="info">📋 나를 소개해요</button>
+      <button class="tab-btn" data-tab="schedule">🌀 소중한 하루 계획하기</button>
+      <button class="tab-btn" data-tab="mind">🌤️ 마음 볕쬐기</button>
+      <button class="tab-btn" data-tab="goals">🎯 목표·소망 목록</button>
+      <button class="tab-btn" data-tab="habit">✅ 습관 날씨표</button>
+      <button class="tab-btn" data-tab="print">🖨️ 완성 &amp; 인쇄</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ================= INFO ================= -->
+  <section class="view" id="view-info">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span>기본 정보를 입력해요</div>
+      <div class="info-grid">
+        <div><label class="field">학교</label><input type="text" id="in-school" placeholder="○○초등학교"></div>
+        <div><label class="field">학년</label><input type="text" id="in-grade" placeholder="6"></div>
+        <div><label class="field">반</label><input type="text" id="in-class" placeholder="1"></div>
+        <div><label class="field">번호</label><input type="text" id="in-number" placeholder="12"></div>
+        <div><label class="field">이름</label><input type="text" id="in-name" placeholder="홍길동"></div>
+      </div>
+      <div class="info-grid" style="margin-top:14px;">
+        <div><label class="field">방학 시작일</label><input type="date" id="in-start" value="2026-07-27"></div>
+        <div><label class="field">방학 종료일</label><input type="date" id="in-end" value="2026-08-14"></div>
+      </div>
+      <p class="hint">✏️ 여기 입력한 정보는 시간표·습관 달력·인쇄 화면에 자동으로 반영돼요. 브라우저에 자동 저장되니 다시 들어와도 이어서 쓸 수 있어요.</p>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="section-title"><span class="dot" style="background:var(--lav);"></span>이 플래너를 만든 이유</div>
+      <p style="font-size:13.5px;line-height:1.8;color:var(--ink-soft);margin:0;">
+        학교와 학원 때문에 마음을 돌볼 시간이 부족했던 친구들을 위해 만들었어요.
+        공부·놀이 계획뿐 아니라 <b style="color:var(--lav-dark);">고마운 순간 적기, 친구와 웃음 나누기, 가족과 마음 나누기</b> 같은
+        <b style="color:var(--lav-dark);">마음이 여유로워지는 활동</b>도 소중한 하루 계획과 별도의 "마음 볕쬐기" 공간에 기록할 수 있어요.
+        방학이 끝날 때, 몸도 마음도 튼튼해진 나를 만나보세요 💛
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= SCHEDULE ================= -->
+  <section class="view" id="view-schedule">
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>나의 소중한 하루</div>
+        <div class="wheel-wrap">
+          <div id="wheelHolder"></div>
+          <div class="legend" id="legendHolder"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot" style="background:var(--amber);"></span>소중한 하루 채우기</div>
+
+        <div class="quick-groups">
+          <div>
+            <div class="quick-group-label">🌱 배움이 자라는 시간</div>
+            <div class="quick-btns" id="qg-study"></div>
+          </div>
+          <div>
+            <div class="quick-group-label">🌈 신나는 하루</div>
+            <div class="quick-btns" id="qg-life"></div>
+          </div>
+          <div>
+            <div class="quick-group-label">🌤️ 마음 볕쬐기 <span style="font-weight:400;color:var(--ink-soft);">(NEW)</span></div>
+            <div class="quick-btns" id="qg-mind"></div>
+          </div>
+        </div>
+
+        <div class="time-row">
+          <div><label class="field">시작 시각</label><input type="time" id="sch-start" value="09:00"></div>
+          <div><label class="field">마침 시각</label><input type="time" id="sch-end" value="10:00"></div>
+        </div>
+        <label class="field" style="margin-top:10px;">이 시간의 이름은?</label>
+        <input type="text" id="sch-name" placeholder="예: 엄마와 마음 나누기, 집중 공부, 꿈나라로">
+        <div class="hint" id="sch-tip"></div>
+
+        <label class="field" style="margin-top:10px;">이 시간의 색깔은?</label>
+        <div class="swatches" id="swatchHolder"></div>
+
+        <button class="btn btn-primary" id="btnAddSch" style="width:100%;justify-content:center;margin-top:14px;">+ 소중한 하루에 담기</button>
+
+        <div style="margin-top:18px;">
+          <div class="section-title" style="font-size:14px;"><span class="dot" style="background:var(--pink);"></span>내가 채운 소중한 시간들</div>
+          <div id="schListHolder"></div>
+          <button class="btn btn-ghost btn-sm" id="btnClearSch" style="margin-top:6px;">소중한 하루 다시 채우기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MIND ================= -->
+  <section class="view" id="view-mind">
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title"><span class="dot" style="background:var(--pink);"></span>고마운 순간 모으기</div>
+        <div class="mind-card pink">
+          <div class="mind-inline"><label class="field">날짜</label><input type="date" id="grat-date"></div>
+          <label class="field">오늘 감사한 일을 3가지 적어볼까요?</label>
+          <div class="three-col">
+            <input type="text" id="grat-1" placeholder="1. ">
+            <input type="text" id="grat-2" placeholder="2. ">
+            <input type="text" id="grat-3" placeholder="3. ">
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnAddGrat" style="margin-top:10px;">고마운 순간 저장하기</button>
+        </div>
+        <div id="gratList"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot" style="background:var(--lav);"></span>가족과 마음 나누기</div>
+        <div class="mind-card">
+          <div class="mind-inline"><label class="field">날짜</label><input type="date" id="fam-date"></div>
+          <div class="mind-inline">
+            <label class="field">누구와 이야기했나요?</label>
+            <select id="fam-who">
+              <option>엄마</option><option>아빠</option><option>형</option><option>누나</option>
+              <option>오빠</option><option>언니</option><option>동생</option><option>할머니</option>
+              <option>할아버지</option><option>직접 입력</option>
+            </select>
+          </div>
+          <div class="mind-inline" id="fam-custom-row" style="display:none;">
+            <label class="field">이름 직접 입력</label><input type="text" id="fam-custom" placeholder="예: 이모">
+          </div>
+          <label class="field">무슨 이야기를 나눴나요?</label>
+          <textarea id="fam-note" placeholder="오늘 있었던 일, 고마웠던 마음 등을 자유롭게 적어보세요"></textarea>
+          <button class="btn btn-lav btn-sm" id="btnAddFam" style="margin-top:10px;">대화 기록 저장하기</button>
+        </div>
+        <div id="famList"></div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px;">
+      <div class="card">
+        <div class="section-title"><span class="dot" style="background:var(--amber);"></span>친구와 웃음 나누기</div>
+        <div class="mind-card amber">
+          <div class="mind-inline"><label class="field">날짜</label><input type="date" id="frd-date"></div>
+          <div class="mind-inline"><label class="field">누구와 함께?</label><input type="text" id="frd-who" placeholder="친구 이름"></div>
+          <label class="field">무엇을 하며 보냈나요?</label>
+          <input type="text" id="frd-what" placeholder="예: 놀이터에서 그네타기, 보드게임">
+          <label class="field" style="margin-top:8px;">그때 내 기분은?</label>
+          <div class="mood-row" id="frd-mood"></div>
+          <button class="btn btn-amber btn-sm" id="btnAddFrd" style="margin-top:10px;">친구 시간 저장하기</button>
+        </div>
+        <div id="frdList"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot" style="background:var(--teal);"></span>이번 주 마음 날씨</div>
+        <p class="hint" style="margin-top:-6px;">최근 7일 동안 내 마음이 어땠는지 기록해보세요.</p>
+        <div class="mood-week" id="moodWeek"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= GOALS ================= -->
+  <section class="view" id="view-goals">
+    <div class="section-title"><span class="dot"></span>나의 방학 목표</div>
+    <div class="grid-3">
+      <div class="card goal-card">
+        <h3><span class="tag tag-study">공부 목표</span></h3>
+        <label class="field">목표</label><input type="text" id="g-study-goal" placeholder="구구단 다 외우기">
+        <label class="field">이유</label><input type="text" id="g-study-reason" placeholder="구구단을 잘 하고 싶어서">
+        <label class="field">실천</label><input type="text" id="g-study-practice" placeholder="매일 구구단 연습하기">
+      </div>
+      <div class="card goal-card">
+        <h3><span class="tag tag-mind">몸·마음 목표</span></h3>
+        <label class="field">목표</label><input type="text" id="g-mind-goal" placeholder="줄넘기 100개씩">
+        <label class="field">이유</label><input type="text" id="g-mind-reason" placeholder="튼튼해지고 마음도 편안해지고 싶어서">
+        <label class="field">실천</label><input type="text" id="g-mind-practice" placeholder="매일 저녁마다 하기">
+      </div>
+      <div class="card goal-card">
+        <h3><span class="tag tag-challenge">도전 목표</span></h3>
+        <label class="field">목표</label><input type="text" id="g-chal-goal" placeholder="나만의 요리 레시피 만들기">
+        <label class="field">이유</label><input type="text" id="g-chal-reason" placeholder="부모님을 도와드리고 싶어서">
+        <label class="field">실천</label><input type="text" id="g-chal-practice" placeholder="부모님과 함께 도전!">
+      </div>
+    </div>
+
+    <div class="pledge-box">
+      <div class="section-title" style="margin-bottom:8px;"><span class="dot" style="background:var(--amber);"></span>나의 다짐</div>
+      <textarea id="g-pledge" placeholder="계획을 미루지 않고 열심히 하겠습니다!" style="background:rgba(255,255,255,0.7);"></textarea>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <div class="section-title"><span class="dot" style="background:var(--pink);"></span>방학 소망 목록</div>
+      <div class="bucket-row">
+        <input type="text" id="bucket-input" placeholder="예: 가족과 물놀이 가기">
+        <button class="btn btn-primary" id="btnAddBucket">+ 소망 담기</button>
+      </div>
+      <div id="bucketList"></div>
+    </div>
+  </section>
+
+  <!-- ================= HABIT ================= -->
+  <section class="view" id="view-habit">
+    <div class="card">
+      <div class="section-title"><span class="dot"></span>매일 습관, 매일 날씨</div>
+      <div class="habit-setup">
+        <div><label class="field">새 습관 추가</label>
+          <div class="habit-row-add"><input type="text" id="habit-new" placeholder="예: 30분 독서"><button class="btn btn-ghost btn-sm" id="btnAddHabitRow">+</button></div>
+        </div>
+        <button class="btn btn-amber btn-sm" id="btnRegen">📅 기본정보의 방학 기간으로 달력 다시 만들기</button>
+      </div>
+      <div id="habitTables"></div>
+      <p class="hint">💡 "고마운 순간 적기"와 "오늘의 한 줄 소감"도 습관표에 기본으로 들어있어요. 매일 체크하며 마음도 함께 챙겨보세요.</p>
+    </div>
+  </section>
+
+  <!-- ================= PRINT ================= -->
+  <section class="view" id="view-print">
+    <div class="poster" id="posterContent">
+      <div class="bunting"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="poster-title">
+        <div style="font-size:30px;">☀️🌊🍉</div>
+        <h1>여름방학 마음 자람 계획표</h1>
+      </div>
+      <div class="poster-meta-wrap"><span class="poster-meta" id="posterMeta">학교 · 학년 · 반 · 번호 · 이름</span></div>
+
+      <div class="poster-section">
+        <h2>🌀 나의 소중한 하루</h2>
+        <div class="wheel-wrap"><div id="posterWheelHolder"></div><div class="legend" id="posterLegendHolder"></div></div>
+      </div>
+
+      <div class="poster-section">
+        <h2>🎯 나의 방학 목표</h2>
+        <div id="posterGoals"></div>
+        <div style="margin-top:10px;font-weight:700;font-style:italic;color:var(--amber-dark);" id="posterPledge"></div>
+      </div>
+
+      <div class="poster-section">
+        <h2>🌤️ 마음 볕쬐기 기록</h2>
+        <div class="stat-pills" id="posterMindStats"></div>
+      </div>
+
+      <div class="poster-section">
+        <h2>✅ 방학 소망 목록</h2>
+        <div id="posterBucket"></div>
+      </div>
+
+      <div class="footer-boat">⛵🌊🐚🌊⛵</div>
+    </div>
+
+    <div class="export-bar no-print">
+      <button class="btn btn-primary" id="btnPrint">🖨️ 인쇄하기</button>
+      <button class="btn btn-amber" id="btnImg">🖼️ 이미지로 저장</button>
+      <button class="btn btn-lav" id="btnPdf">📄 PDF로 저장</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ================= STATE ================= */
+const PALETTE = ['#FFD93D','#FF9F45','#4ECDC4','#5B8DEF','#3DCB8E','#FF7EB6','#B98BD9','#FF6B6B','#8DD8FF','#F4A259','#6EC6CA','#A0A0A0'];
+const MOODS = ['😊','😄','🙂','😌','😐','😢'];
+
+const QUICK_STUDY = [
+  ['아침 준비하기','#FFD93D'],['아침 식사','#FF9F45'],['집중 공부','#5B8DEF'],
+  ['책과 만나기','#4ECDC4'],['숙제 마무리','#B98BD9'],['점심 식사','#FF7EB6']
+];
+const QUICK_LIFE = [
+  ['마음껏 뛰어놀기','#FFD93D'],['몸 튼튼 운동','#3DCB8E'],['가족과 함께','#B98BD9'],
+  ['저녁 식사','#FF6B6B'],['잠깐 쉬어가기','#8DD8FF'],['꿈나라로','#5B6EF5']
+];
+const QUICK_MIND = [
+  ['고마운 순간 적기','#FF93B0'],['가족과 마음 나누기','#C9B6F2'],['친구와 웃음 나누기','#FFCB77'],
+  ['책으로 마음 채우기','#9FD8CB'],['바람 쐬며 걷기','#A7D8A0'],['숨 고르며 쉬기','#B8C0FF']
+];
+
+const defaultState = ()=>({
+  info:{school:'',grade:'',classNum:'',number:'',name:'',startDate:'2026-07-27',endDate:'2026-08-14'},
+  schedule:[],
+  mind:{gratitude:[],familyTalk:[],friendTime:[],moods:{}},
+  goals:{
+    study:{goal:'',reason:'',practice:''},
+    mind:{goal:'',reason:'',practice:''},
+    challenge:{goal:'',reason:'',practice:''},
+    pledge:''
+  },
+  bucket:[],
+  habits:{rows:[
+    {name:'30분 독서',type:'check'},
+    {name:'줄넘기 운동',type:'check'},
+    {name:'고마운 순간 적기',type:'check'},
+    {name:'한 장 학습지',type:'check'},
+    {name:'오늘의 한 줄 소감',type:'text'}
+  ], checks:{}}
+});
+
+let state = defaultState();
+let selectedColor = PALETTE[2];
+let selectedFrdMood = MOODS[0];
+
+/* ================= PERSISTENCE ================= */
+/* Uses the browser's own localStorage so saved entries stay on this device
+   even after the file is downloaded and opened outside Claude. */
+const STORAGE_KEY = 'vacation-plan-state-v1';
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ console.warn('save failed', e); }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ state = Object.assign(defaultState(), JSON.parse(raw)); }
+  }catch(e){ /* no saved state yet, or storage blocked in this environment */ }
+}
+
+/* ================= HELPERS ================= */
+const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const parseTime = t => { const [h,m]=t.split(':').map(Number); return h + m/60; };
+const fmtTime = t => t;
+const todayStr = ()=> new Date().toISOString().slice(0,10);
+
+function pointOnCircle(cx,cy,r,angleDeg){
+  const rad=(angleDeg-90)*Math.PI/180;
+  return {x:cx+r*Math.cos(rad), y:cy+r*Math.sin(rad)};
+}
+function describeSlice(cx,cy,r,a1,a2){
+  const p1=pointOnCircle(cx,cy,r,a1), p2=pointOnCircle(cx,cy,r,a2);
+  const large = (a2-a1)>180 ? 1:0;
+  return `M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z`;
+}
+
+function scheduleSegments(){
+  const segs=[];
+  state.schedule.forEach(a=>{
+    let s=parseTime(a.start), e=parseTime(a.end);
+    if(e<=s) e+=24;
+    if(e>24){
+      segs.push({start:s,end:24,name:a.name,color:a.color,id:a.id});
+      segs.push({start:0,end:e-24,name:a.name,color:a.color,id:a.id});
+    } else {
+      segs.push({start:s,end:e,name:a.name,color:a.color,id:a.id});
+    }
+  });
+  return segs.sort((x,y)=>x.start-y.start);
+}
+
+function generateWheelSVG(size){
+  const segs = scheduleSegments();
+  const cx=size/2, cy=size/2, r=size/2-38;
+  let svg = `<svg viewBox="0 0 ${size} ${size}" class="wheel-svg" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#F2F0E6" stroke="#E4DFCB" stroke-width="1"/>`;
+  segs.forEach(s=>{
+    const a1 = s.start/24*360, a2 = s.end/24*360;
+    svg += `<path d="${describeSlice(cx,cy,r,a1,a2)}" fill="${s.color}" stroke="#fff" stroke-width="1"><title>${s.name}</title></path>`;
+  });
+  for(let h=0;h<24;h++){
+    const ang = h/24*360;
+    const p = pointOnCircle(cx,cy,r+15,ang);
+    svg += `<text x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" font-size="9" text-anchor="middle" dominant-baseline="middle" fill="#7C766A" font-family="Noto Sans KR">${h}</text>`;
+  }
+  const innerR = r*0.34;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#ffffff" stroke="#3FBFB6" stroke-width="3"/>`;
+  svg += `<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="13" fill="#1F8A82" font-weight="700" font-family="Baloo 2, sans-serif">하루</text>`;
+  svg += `<text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="13" fill="#1F8A82" font-weight="700" font-family="Baloo 2, sans-serif">24시간</text>`;
+  svg += `</svg>`;
+  return svg;
+}
+
+function renderLegend(holderId){
+  const holder = document.getElementById(holderId);
+  const seen = new Map();
+  state.schedule.forEach(a=> seen.set(a.name+a.color, a));
+  holder.innerHTML = [...seen.values()].map(a=>
+    `<div class="legend-chip"><span class="d" style="background:${a.color}"></span>${a.name} (${a.start}~${a.end})</div>`
+  ).join('') || `<div class="hint">아직 넣은 활동이 없어요. 왼쪽에서 활동을 추가해보세요!</div>`;
+}
+
+/* ================= TABS ================= */
+function showTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.getElementById('view-'+name).classList.add('active');
+  if(name==='schedule'){ document.getElementById('wheelHolder').innerHTML = generateWheelSVG(400); renderLegend('legendHolder'); }
+  if(name==='print'){ renderPoster(); }
+}
+document.getElementById('tabBar').addEventListener('click', e=>{
+  const b = e.target.closest('.tab-btn'); if(!b) return; showTab(b.dataset.tab);
+});
+
+/* ================= INFO TAB ================= */
+function bindInfo(){
+  const ids = {school:'in-school',grade:'in-grade',classNum:'in-class',number:'in-number',name:'in-name',startDate:'in-start',endDate:'in-end'};
+  Object.entries(ids).forEach(([key,id])=>{
+    const el = document.getElementById(id);
+    el.value = state.info[key] || el.value;
+    el.addEventListener('input', ()=>{ state.info[key]=el.value; saveState(); });
+    el.addEventListener('change', ()=>{ state.info[key]=el.value; saveState(); });
+  });
+}
+
+/* ================= SCHEDULE TAB ================= */
+function renderQuickButtons(){
+  const build = (arr, holderId, extraClass)=>{
+    const holder = document.getElementById(holderId);
+    holder.innerHTML = arr.map(([label,color])=>
+      `<button class="quick-btn ${extraClass||''}" style="background:${color}" data-name="${label}" data-color="${color}">${label}</button>`
+    ).join('');
+    holder.querySelectorAll('.quick-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.getElementById('sch-name').value = btn.dataset.name;
+        selectedColor = btn.dataset.color;
+        renderSwatches();
+        const tip = document.getElementById('sch-tip');
+        tip.textContent = btn.dataset.name==='가족과 마음 나누기'
+          ? '💬 누구와 이야기할지 이름을 넣어보세요! 예: "엄마와 마음 나누기"'
+          : (extraClass==='mind' ? '🌤️ 마음이 편안해지는 시간이에요. 시간을 정하고 눌러서 넣어보세요.' : '');
+      });
+    });
+  };
+  build(QUICK_STUDY,'qg-study','');
+  build(QUICK_LIFE,'qg-life','');
+  build(QUICK_MIND,'qg-mind','mind');
+}
+function renderSwatches(){
+  const holder = document.getElementById('swatchHolder');
+  holder.innerHTML = PALETTE.map(c=>
+    `<button type="button" class="swatch ${c===selectedColor?'selected':''}" style="background:${c}" data-color="${c}"></button>`
+  ).join('');
+  holder.querySelectorAll('.swatch').forEach(sw=>{
+    sw.addEventListener('click', ()=>{ selectedColor = sw.dataset.color; renderSwatches(); });
+  });
+}
+function renderSchList(){
+  const holder = document.getElementById('schListHolder');
+  const sorted = [...state.schedule].sort((a,b)=>parseTime(a.start)-parseTime(b.start));
+  holder.innerHTML = sorted.map(a=>
+    `<div class="list-item">
+      <span class="swatch-dot" style="background:${a.color}"></span>
+      <span class="t">${a.start}~${a.end}</span>
+      <span class="n">${a.name}</span>
+      <button data-id="${a.id}">✕</button>
+    </div>`
+  ).join('') || `<div class="hint">아직 넣은 활동이 없어요.</div>`;
+  holder.querySelectorAll('button[data-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.schedule = state.schedule.filter(a=>a.id!==btn.dataset.id);
+      saveState(); renderSchList();
+      document.getElementById('wheelHolder').innerHTML = generateWheelSVG(400);
+      renderLegend('legendHolder');
+    });
+  });
+}
+function bindScheduleForm(){
+  document.getElementById('btnAddSch').addEventListener('click', ()=>{
+    const start=document.getElementById('sch-start').value;
+    const end=document.getElementById('sch-end').value;
+    const name=document.getElementById('sch-name').value.trim();
+    if(!start||!end||!name){ alert('시간과 활동 이름을 모두 입력해주세요!'); return; }
+    state.schedule.push({id:uid(), start, end, name, color:selectedColor});
+    saveState();
+    document.getElementById('sch-name').value='';
+    document.getElementById('wheelHolder').innerHTML = generateWheelSVG(400);
+    renderLegend('legendHolder');
+    renderSchList();
+  });
+  document.getElementById('btnClearSch').addEventListener('click', ()=>{
+    if(confirm('모든 시간표 활동을 지울까요?')){
+      state.schedule=[]; saveState();
+      document.getElementById('wheelHolder').innerHTML = generateWheelSVG(400);
+      renderLegend('legendHolder'); renderSchList();
+    }
+  });
+}
+
+/* ================= MIND TAB ================= */
+function renderMoodOptions(holderId, onPick, currentVal){
+  const holder = document.getElementById(holderId);
+  holder.innerHTML = MOODS.map(m=>`<button type="button" class="mood-opt ${m===currentVal?'selected':''}" data-m="${m}">${m}</button>`).join('');
+  holder.querySelectorAll('.mood-opt').forEach(b=> b.addEventListener('click', ()=>{ onPick(b.dataset.m); renderMoodOptions(holderId, onPick, b.dataset.m); }));
+}
+
+function renderGratList(){
+  const holder = document.getElementById('gratList');
+  holder.innerHTML = [...state.mind.gratitude].reverse().map(g=>
+    `<div class="entry"><button class="del" data-id="${g.id}">✕</button>
+      <div class="date">${g.date}</div>
+      <div>💗 ${g.items.filter(Boolean).map(i=>`<div>${i}</div>`).join('')}</div>
+    </div>`
+  ).join('') || `<p class="hint">아직 적은 고마운 순간이 없어요.</p>`;
+  holder.querySelectorAll('.del').forEach(b=> b.addEventListener('click', ()=>{
+    state.mind.gratitude = state.mind.gratitude.filter(g=>g.id!==b.dataset.id); saveState(); renderGratList();
+  }));
+}
+function renderFamList(){
+  const holder = document.getElementById('famList');
+  holder.innerHTML = [...state.mind.familyTalk].reverse().map(f=>
+    `<div class="entry"><button class="del" data-id="${f.id}">✕</button>
+      <div class="date">${f.date} · ${f.who}</div>
+      <div>${f.note}</div>
+    </div>`
+  ).join('') || `<p class="hint">아직 기록한 대화가 없어요.</p>`;
+  holder.querySelectorAll('.del').forEach(b=> b.addEventListener('click', ()=>{
+    state.mind.familyTalk = state.mind.familyTalk.filter(f=>f.id!==b.dataset.id); saveState(); renderFamList();
+  }));
+}
+function renderFrdList(){
+  const holder = document.getElementById('frdList');
+  holder.innerHTML = [...state.mind.friendTime].reverse().map(f=>
+    `<div class="entry"><button class="del" data-id="${f.id}">✕</button>
+      <div class="date">${f.date} · ${f.who} ${f.mood}</div>
+      <div>${f.what}</div>
+    </div>`
+  ).join('') || `<p class="hint">아직 기록한 친구와의 시간이 없어요.</p>`;
+  holder.querySelectorAll('.del').forEach(b=> b.addEventListener('click', ()=>{
+    state.mind.friendTime = state.mind.friendTime.filter(f=>f.id!==b.dataset.id); saveState(); renderFrdList();
+  }));
+}
+function renderMoodWeek(){
+  const holder = document.getElementById('moodWeek');
+  const days=[];
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  holder.innerHTML = days.map(d=>{
+    const label = d.slice(5);
+    const cur = state.mind.moods[d];
+    return `<div class="mood-day">${label}<button type="button" class="em ${cur?'selected':''}" data-date="${d}">${cur||'➕'}</button></div>`;
+  }).join('');
+  holder.querySelectorAll('.em').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const cycle = MOODS;
+      const cur = state.mind.moods[b.dataset.date];
+      const idx = cur ? (cycle.indexOf(cur)+1)%cycle.length : 0;
+      state.mind.moods[b.dataset.date] = cycle[idx];
+      saveState(); renderMoodWeek();
+    });
+  });
+}
+function bindMindTab(){
+  document.getElementById('grat-date').value = todayStr();
+  document.getElementById('fam-date').value = todayStr();
+  document.getElementById('frd-date').value = todayStr();
+  renderMoodOptions('frd-mood', m=> selectedFrdMood=m, selectedFrdMood);
+
+  document.getElementById('fam-who').addEventListener('change', e=>{
+    document.getElementById('fam-custom-row').style.display = e.target.value==='직접 입력' ? 'grid' : 'none';
+  });
+
+  document.getElementById('btnAddGrat').addEventListener('click', ()=>{
+    const date=document.getElementById('grat-date').value || todayStr();
+    const items=[document.getElementById('grat-1').value.trim(),document.getElementById('grat-2').value.trim(),document.getElementById('grat-3').value.trim()];
+    if(!items.some(Boolean)){ alert('감사한 일을 하나 이상 적어주세요!'); return; }
+    state.mind.gratitude.push({id:uid(), date, items}); saveState();
+    document.getElementById('grat-1').value=''; document.getElementById('grat-2').value=''; document.getElementById('grat-3').value='';
+    renderGratList();
+  });
+  document.getElementById('btnAddFam').addEventListener('click', ()=>{
+    const date=document.getElementById('fam-date').value || todayStr();
+    let who=document.getElementById('fam-who').value;
+    if(who==='직접 입력'){ who = document.getElementById('fam-custom').value.trim() || '가족'; }
+    const note=document.getElementById('fam-note').value.trim();
+    if(!note){ alert('나눈 이야기를 적어주세요!'); return; }
+    state.mind.familyTalk.push({id:uid(), date, who, note}); saveState();
+    document.getElementById('fam-note').value=''; document.getElementById('fam-custom').value='';
+    renderFamList();
+  });
+  document.getElementById('btnAddFrd').addEventListener('click', ()=>{
+    const date=document.getElementById('frd-date').value || todayStr();
+    const who=document.getElementById('frd-who').value.trim();
+    const what=document.getElementById('frd-what').value.trim();
+    if(!who||!what){ alert('친구 이름과 활동을 적어주세요!'); return; }
+    state.mind.friendTime.push({id:uid(), date, who, what, mood:selectedFrdMood}); saveState();
+    document.getElementById('frd-who').value=''; document.getElementById('frd-what').value='';
+    renderFrdList();
+  });
+
+  renderGratList(); renderFamList(); renderFrdList(); renderMoodWeek();
+}
+
+/* ================= GOALS TAB ================= */
+function bindGoalsTab(){
+  const map = {
+    'g-study-goal':['study','goal'], 'g-study-reason':['study','reason'], 'g-study-practice':['study','practice'],
+    'g-mind-goal':['mind','goal'], 'g-mind-reason':['mind','reason'], 'g-mind-practice':['mind','practice'],
+    'g-chal-goal':['challenge','goal'], 'g-chal-reason':['challenge','reason'], 'g-chal-practice':['challenge','practice'],
+  };
+  Object.entries(map).forEach(([id,[cat,field]])=>{
+    const el = document.getElementById(id);
+    el.value = state.goals[cat][field] || '';
+    el.addEventListener('input', ()=>{ state.goals[cat][field]=el.value; saveState(); });
+  });
+  const pledge = document.getElementById('g-pledge');
+  pledge.value = state.goals.pledge || '';
+  pledge.addEventListener('input', ()=>{ state.goals.pledge = pledge.value; saveState(); });
+
+  document.getElementById('btnAddBucket').addEventListener('click', ()=>{
+    const input = document.getElementById('bucket-input');
+    const val = input.value.trim();
+    if(!val) return;
+    state.bucket.push({id:uid(), text:val, done:false});
+    input.value=''; saveState(); renderBucket();
+  });
+  renderBucket();
+}
+function renderBucket(){
+  const holder = document.getElementById('bucketList');
+  holder.innerHTML = state.bucket.map(b=>
+    `<div class="bucket-item ${b.done?'done':''}">
+      <input type="checkbox" data-id="${b.id}" ${b.done?'checked':''}>
+      <span class="txt">${b.text}</span>
+      <button data-del="${b.id}" style="background:none;border:none;color:#C4433C;">✕</button>
+    </div>`
+  ).join('') || `<p class="hint">방학 동안 해보고 싶은 일을 추가해보세요!</p>`;
+  holder.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const item = state.bucket.find(b=>b.id===cb.dataset.id);
+      item.done = cb.checked; saveState(); renderBucket();
+    });
+  });
+  holder.querySelectorAll('button[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.bucket = state.bucket.filter(b=>b.id!==btn.dataset.del); saveState(); renderBucket();
+    });
+  });
+}
+
+/* ================= HABIT TAB ================= */
+function getHabitWeeks(){
+  const start = state.info.startDate ? new Date(state.info.startDate) : new Date();
+  const end = state.info.endDate ? new Date(state.info.endDate) : new Date(start.getTime()+13*86400000);
+  const allDays=[];
+  for(let dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+    allDays.push(new Date(dt).toISOString().slice(0,10));
+  }
+  if(allDays.length===0) allDays.push(start.toISOString().slice(0,10));
+  const out=[];
+  for(let i=0;i<allDays.length;i+=7){
+    out.push(allDays.slice(i,i+7));
+  }
+  return out;
+}
+function renderHabitTables(){
+  const holder = document.getElementById('habitTables');
+  const weeks = getHabitWeeks();
+  const dayNames=['일','월','화','수','목','금','토'];
+  holder.innerHTML = weeks.map((days,wi)=>{
+    const header = days.map(d=>{
+      const dt=new Date(d);
+      return `<th>${d.slice(5)}<br><span style="font-weight:400;">${dayNames[dt.getDay()]}</span></th>`;
+    }).join('');
+    const rows = state.habits.rows.map((row,ri)=>{
+      const cells = days.map(d=>{
+        const key = ri+'_'+d;
+        if(row.type==='check'){
+          const checked = state.habits.checks[key] ? 'checked' : '';
+          return `<td><input type="checkbox" data-key="${key}" ${checked}></td>`;
+        } else {
+          const val = state.habits.checks[key] || '';
+          return `<td><input type="text" data-key="${key}" value="${val.replace(/"/g,'&quot;')}" placeholder="-"></td>`;
+        }
+      }).join('');
+      return `<tr><td class="rowhead">${row.name} <button class="rowdel" data-ri="${ri}">✕</button></td>${cells}</tr>`;
+    }).join('');
+    return `<div class="week-label">${wi+1}주차 (${days[0]} ~ ${days[days.length-1]})</div>
+      <table class="habit-table"><thead><tr><th class="rowhead-col">나의 습관</th>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('');
+
+  holder.querySelectorAll('input[type=checkbox][data-key]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{ state.habits.checks[cb.dataset.key]=cb.checked; saveState(); });
+  });
+  holder.querySelectorAll('input[type=text][data-key]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ state.habits.checks[inp.dataset.key]=inp.value; saveState(); });
+  });
+  holder.querySelectorAll('.rowdel').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.habits.rows.splice(parseInt(btn.dataset.ri,10),1);
+      saveState(); renderHabitTables();
+    });
+  });
+}
+function bindHabitTab(){
+  document.getElementById('btnAddHabitRow').addEventListener('click', ()=>{
+    const inp = document.getElementById('habit-new');
+    const val = inp.value.trim();
+    if(!val) return;
+    state.habits.rows.push({name:val, type:'check'});
+    inp.value=''; saveState(); renderHabitTables();
+  });
+  document.getElementById('btnRegen').addEventListener('click', renderHabitTables);
+  renderHabitTables();
+}
+
+/* ================= PRINT / POSTER ================= */
+function renderPoster(){
+  const i = state.info;
+  document.getElementById('posterMeta').textContent =
+    `${i.school||'학교'} · ${i.grade||'학년'}학년 ${i.classNum||'반'}반 ${i.number||'번호'}번 ${i.name||'이름'}`;
+
+  document.getElementById('posterWheelHolder').innerHTML = generateWheelSVG(360);
+  renderLegend('posterLegendHolder');
+
+  const g = state.goals;
+  document.getElementById('posterGoals').innerHTML = `
+    <div class="stat-pills">
+      <span class="stat-pill" style="background:#DCEBFF;color:#2461C4;">📘 ${g.study.goal||'공부 목표 미정'}</span>
+      <span class="stat-pill" style="background:#F2E6FF;color:#7C3FC4;">🏃 ${g.mind.goal||'몸·마음 목표 미정'}</span>
+      <span class="stat-pill" style="background:#FFE9D4;color:#C46A1E;">🚀 ${g.challenge.goal||'도전 목표 미정'}</span>
+    </div>`;
+  document.getElementById('posterPledge').textContent = g.pledge ? `"${g.pledge}"` : '';
+
+  document.getElementById('posterMindStats').innerHTML = `
+    <span class="stat-pill">💗 고마운 순간 ${state.mind.gratitude.length}번</span>
+    <span class="stat-pill">👪 가족과 마음 나누기 ${state.mind.familyTalk.length}번</span>
+    <span class="stat-pill">🤝 친구와 웃음 나누기 ${state.mind.friendTime.length}번</span>`;
+
+  document.getElementById('posterBucket').innerHTML = state.bucket.length
+    ? state.bucket.map(b=>`<div class="bucket-item ${b.done?'done':''}"><span>${b.done?'✅':'⬜'}</span><span class="txt">${b.text}</span></div>`).join('')
+    : `<p class="hint">아직 담은 소망이 없어요.</p>`;
+
+  updateWeatherBadge();
+}
+
+function updateWeatherBadge(){
+  const total = state.mind.gratitude.length + state.mind.familyTalk.length + state.mind.friendTime.length;
+  let icon='☀️', label='마음 날씨: 맑음';
+  if(total===0){ icon='🌤️'; label='마음 날씨: 활동을 기록해보세요'; }
+  else if(total<3){ icon='⛅'; label='마음 날씨: 구름 조금'; }
+  else if(total<7){ icon='☀️'; label='마음 날씨: 맑음'; }
+  else { icon='🌈'; label='마음 날씨: 무지개!'; }
+  document.getElementById('weatherIcon').textContent = icon;
+  document.getElementById('weatherLabel').textContent = label;
+}
+
+document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+document.getElementById('btnImg').addEventListener('click', async ()=>{
+  const node = document.getElementById('posterContent');
+  const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff'});
+  const link = document.createElement('a');
+  link.download = '방학계획표.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+document.getElementById('btnPdf').addEventListener('click', async ()=>{
+  const node = document.getElementById('posterContent');
+  const canvas = await html2canvas(node, {scale:2, backgroundColor:'#ffffff'});
+  const { jsPDF } = window.jspdf;
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p','pt','a4');
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const ratio = Math.min(pageW/canvas.width, pageH/canvas.height);
+  const w = canvas.width*ratio, h = canvas.height*ratio;
+  pdf.addImage(imgData,'PNG',(pageW-w)/2,20,w,h);
+  pdf.save('방학계획표.pdf');
+});
+
+/* ================= INIT ================= */
+async function init(){
+  await loadState();
+  bindInfo();
+  renderQuickButtons();
+  renderSwatches();
+  bindScheduleForm();
+  renderSchList();
+  bindMindTab();
+  bindGoalsTab();
+  bindHabitTab();
+  updateWeatherBadge();
+  showTab('info');
+}
+init();
+</script>
+</body>
+</html>
